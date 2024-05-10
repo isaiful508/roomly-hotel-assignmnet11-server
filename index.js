@@ -25,8 +25,7 @@ app.listen(port, ()=>{
 })
 
 
-//roomly
-//fqjp2U5uKRrvpXEA
+
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster1.bhtyeej.mongodb.net/?retryWrites=true&w=majority&appName=Cluster1`;
@@ -45,6 +44,14 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
 
+    const roomsCollection = client.db('roomlyDB').collection('rooms');
+
+ //get all rooms
+app.get('/rooms', async(req, res) =>{
+    const result = await roomsCollection.find().toArray()
+
+    res.send(result);
+})
 
 
 
@@ -55,10 +62,6 @@ async function run() {
 
 
 
-
-
-
-    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
