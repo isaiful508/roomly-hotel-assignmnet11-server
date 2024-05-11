@@ -7,7 +7,15 @@ const port = process.env.port || 5000
 const app = express()
 
 const corsOptions = {
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  origin: ["http://localhost:5173",
+    "http://localhost:5174",
+    "https://roomly-assignment11.web.app",
+    "https://roomly-assignment11.firebaseapp.com",
+    
+    "https://roomly.netlify.app"
+
+
+  ],
   credentials: true,
   optionsSuccessStatus: 200,
 
@@ -67,17 +75,17 @@ async function run() {
 
 
     //bookings
-    app.post('/bookings', async(req, res) =>{
+    app.post('/bookings', async (req, res) => {
       const booking = req.body;
-     
+
       const result = await bookingsCollection.insertOne(booking);
       res.send(result);
-    }) 
+    })
 
     //extract booking by email
-    app.get('/bookings/:email', async(req, res) =>{
+    app.get('/bookings/:email', async (req, res) => {
       const email = req.params.email;
-      const query = {customerEmail : email}
+      const query = { customerEmail: email }
       const result = await bookingsCollection.find(query).toArray();
       res.send(result);
     })
@@ -85,7 +93,7 @@ async function run() {
 
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
