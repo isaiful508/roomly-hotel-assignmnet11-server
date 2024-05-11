@@ -1,27 +1,27 @@
 const express = require('express');
 const cors = require('cors');
-require ('dotenv').config();
+require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.port || 5000
 
 const app = express()
 
 const corsOptions = {
-    origin : ['http://localhost:5173', 'http://localhost:5174'],
-    credentials : true,
-    optionsSuccessStatus : 200,
+  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  credentials: true,
+  optionsSuccessStatus: 200,
 
 }
 
 app.use(cors(corsOptions));
 app.use(express.json());
 
-app.get('/', (req, res)=>{
-    res.send('Salam From server');
+app.get('/', (req, res) => {
+  res.send('Salam From server');
 })
 
-app.listen(port, ()=>{
-    console.log(`Alhamdulillah Roomly server is running on port : ${port}`)
+app.listen(port, () => {
+  console.log(`Alhamdulillah Roomly server is running on port : ${port}`)
 })
 
 
@@ -46,25 +46,33 @@ async function run() {
 
     const roomsCollection = client.db('roomlyDB').collection('rooms');
 
- //get all rooms
-app.get('/rooms', async(req, res) =>{
-    const result = await roomsCollection.find().toArray()
+    const bookingsCollection = client.db('roomlyDB').collection('bookings')
 
-    res.send(result);
-})
+    //get all rooms
+    app.get('/rooms', async (req, res) => {
+      const result = await roomsCollection.find().toArray()
 
-//rooms by id
+      res.send(result);
+    })
 
-app.get('/room-details/:id', async (req, res) =>{
-    const id = req.params.id
-    const query = {_id : new ObjectId(id)}
-    const result = await roomsCollection.findOne(query);
-    res.send(result);
-  })
-  
+    //rooms by id
+
+    app.get('/room-details/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      const result = await roomsCollection.findOne(query);
+      res.send(result);
+    })
 
 
 
+    //bookings
+    app.post('/bookings', async(req, res) =>{
+      const booking = req.body;
+     
+      const result = await bookingsCollection.insertOne(booking);
+      res.send(result);
+    }) 
 
 
 
