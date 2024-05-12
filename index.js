@@ -74,7 +74,7 @@ async function run() {
 
 
 
-    //bookings
+    // bookings
     app.post('/bookings', async (req, res) => {
       const booking = req.body;
 
@@ -82,12 +82,65 @@ async function run() {
       res.send(result);
     })
 
+  //   app.post('/bookings', async(req, res) => {
+  //     const booking = req.body;
+  
+  //     try {
+  //         // Insert booking into bookings collection
+  //         const bookingResult = await bookingsCollection.insertOne(booking)
+  //         const bookedRoomId = booking._id;
+  
+  //         // Update availability of the booked room to "Not available" in the rooms collection
+  //         await roomsCollection.updateOne({
+  //             _id: ObjectId(bookedRoomId)
+  //         }, {
+  //             $set: {
+  //               availability: 'Not-Available'
+  //             }
+  //         });
+  //         res.status(201).send('Booking Successfully');
+  
+  //     } catch (error) {
+  //         console.error('Error booking', error);
+  //         res.status(500).send('Internal error');
+  //     }
+  // });
+//   app.put('/room-details/:id', async (req, res) => {
+//     const roomId = req.params.id; // Extract room ID from request parameters
+//     const updatedAvailability = 'Not available'; // Update availability to "Not available"
+//     const filter = { _id: new ObjectId(roomId) }; // Ensure to convert roomId to ObjectId
+//     const update = { availability: updatedAvailability };
+
+//     try {
+//         await roomsCollection.updateOne(filter, { $set: update });
+//         res.status(200).send('Room availability updated successfully');
+//     } catch (error) {
+//         console.error('Error updating room availability:', error);
+//         res.status(500).send('Internal server error');
+//     }
+// });
+
+
+
+
+
+
+
     //extract booking by email
     app.get('/bookings/:email', async (req, res) => {
       const email = req.params.email;
       const query = { customerEmail: email }
       const result = await bookingsCollection.find(query).toArray();
       res.send(result);
+    })
+
+    //cancel bookings
+    app.delete('/bookings/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = {_id:  (id)}
+      const result = await bookingsCollection.deleteOne(query);
+      res.send(result);
+
     })
 
 
