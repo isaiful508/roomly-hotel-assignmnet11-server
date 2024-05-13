@@ -11,7 +11,7 @@ const corsOptions = {
     "http://localhost:5174",
     "https://roomly-assignment11.web.app",
     "https://roomly-assignment11.firebaseapp.com",
-    
+
     "https://roomly.netlify.app"
 
 
@@ -82,43 +82,26 @@ async function run() {
       res.send(result);
     })
 
-  //   app.post('/bookings', async(req, res) => {
-  //     const booking = req.body;
-  
-  //     try {
-  //         // Insert booking into bookings collection
-  //         const bookingResult = await bookingsCollection.insertOne(booking)
-  //         const bookedRoomId = booking._id;
-  
-  //         // Update availability of the booked room to "Not available" in the rooms collection
-  //         await roomsCollection.updateOne({
-  //             _id: ObjectId(bookedRoomId)
-  //         }, {
-  //             $set: {
-  //               availability: 'Not-Available'
-  //             }
-  //         });
-  //         res.status(201).send('Booking Successfully');
-  
-  //     } catch (error) {
-  //         console.error('Error booking', error);
-  //         res.status(500).send('Internal error');
-  //     }
-  // });
-//   app.put('/room-details/:id', async (req, res) => {
-//     const roomId = req.params.id; // Extract room ID from request parameters
-//     const updatedAvailability = 'Not available'; // Update availability to "Not available"
-//     const filter = { _id: new ObjectId(roomId) }; // Ensure to convert roomId to ObjectId
-//     const update = { availability: updatedAvailability };
 
-//     try {
-//         await roomsCollection.updateOne(filter, { $set: update });
-//         res.status(200).send('Room availability updated successfully');
-//     } catch (error) {
-//         console.error('Error updating room availability:', error);
-//         res.status(500).send('Internal server error');
-//     }
-// });
+    //update available
+
+    app.patch('/room-details/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const options = { upsert: true }
+
+      const updateBooking = req.body;
+
+      const updateDoc = {
+        $set: {
+          ...updateBooking
+        }
+      }
+      const result = await roomsCollection.updateOne(query, updateDoc, options)
+      res.send(result);
+
+
+    });
 
 
 
@@ -135,14 +118,30 @@ async function run() {
     })
 
     //cancel bookings
-    app.delete('/bookings/:id', async(req, res) => {
+    app.delete('/bookings/:id', async (req, res) => {
       const id = req.params.id;
-      const query = {_id:  (id)}
+      const query = { _id: (id) }
       const result = await bookingsCollection.deleteOne(query);
       res.send(result);
 
     })
 
+    //update booking date
+
+    app.patch('/bookings/:id', async (req, res) => {
+
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const newDate = req.body.date;
+
+      const updateDoc = {
+        $set: { date: newDate }
+      }
+      const result = await bookingsCollection.updateOne(query, updateDoc)
+      res.send(result);
+
+
+    });
 
 
     // Send a ping to confirm a successful connection
