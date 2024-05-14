@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.port || 5000
@@ -56,11 +57,62 @@ async function run() {
 
     const bookingsCollection = client.db('roomlyDB').collection('bookings')
 
+
+    //jwt generator
+    app.post('/jwt', async(req, res) =>{
+      const user = req.body
+      // console.log(user);
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn:'2h'})
+
+      res
+      .cookie('token', token,{
+        httpOnly: true,
+        secure:false,
+        sameSite: 'none'
+      })
+      .send({success: true})
+    })
+
+
+
+
+
+
+
     //get all rooms
     app.get('/rooms', async (req, res) => {
       const result = await roomsCollection.find().toArray()
 
       res.send(result);
+    })
+
+
+    //update reviews
+
+    app.patch('/room-details/:id', async (req, res) =>{
+      const id = req.params.id;
+      console.log(id);
+
+      const { username, rating, comment, timestamp } = req.body.review
+      // console.log(req.body);
+      try {
+        // Update the room document in the database
+        const updatedRoom = await roomsCollection.reviews.updateOne(
+            { _id: ObjectId(id) }, // Filter: Find the room by its ID
+            { $push: { reviews: { username, rating, comment, timestamp } } }, // Update: Push the new review to the reviews array
+            { returnOriginal: false } // Options: Return the updated document after the update
+        );
+
+        if (!updatedRoom.value) {
+            return res.status(404).json({ error: 'Room not found' });
+        }
+
+        res.json({ message: 'Review added successfully', room: updatedRoom.value });
+    } catch (error) {
+        console.error('Error adding review:', error);
+        res.status(500).json({ error: 'Failed to add review' });
+    }
+
     })
 
     //rooms by id
@@ -131,14 +183,22 @@ async function run() {
     app.patch('/bookings/:id', async (req, res) => {
 
       const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
+      console.log(id);
+      const query = { _id: (id) };
+
+
+      // const { startDate } = req.body;
       const newDate = req.body.date;
+      // console.log(startDate)
+      console.log('fromserver', newDate);
+
 
       const updateDoc = {
         $set: { date: newDate }
       }
       const result = await bookingsCollection.updateOne(query, updateDoc)
       res.send(result);
+
 
 
     });
