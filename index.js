@@ -1,18 +1,20 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser')
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.port || 5000
 
 const app = express()
 
+
+//middle ware
 const corsOptions = {
   origin: ["http://localhost:5173",
     "http://localhost:5174",
     "https://roomly-assignment11.web.app",
     "https://roomly-assignment11.firebaseapp.com",
-
     "https://roomly.netlify.app"
 
 
@@ -24,6 +26,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(cookieParser());
+
 
 app.get('/', (req, res) => {
   res.send('Salam From server');
@@ -48,6 +52,41 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+
+//middlewares 
+const logger = async (req, res, next) => {
+  console.log('called', req.host, req.originalUrl)
+  next();
+}
+
+const verifyToken = async (req, res, next) => {
+  const token = req.cookies?.token;
+  console.log('value of token in middleware', token)
+  if (!token) {
+    return res.status(401).send({ message: 'not authorized' })
+  }
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+
+    //error
+    if (error) {
+      console.log(error);
+      return res.status(401).send({ message: "unauthorized" })
+    }
+    //if token is valid 
+
+    console.log('value in the token', decoded)
+    req.user = decoded;
+
+
+    next();
+  })
+
+
+}
+
+
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -59,18 +98,21 @@ async function run() {
 
 
     //jwt generator
-    app.post('/jwt', async(req, res) =>{
+    app.post('/jwt', logger, async (req, res) => {
       const user = req.body
-      // console.log(user);
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn:'2h'})
+      console.log(user);
+
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: '24h'
+      });
 
       res
-      .cookie('token', token,{
-        httpOnly: true,
-        secure:false,
-        sameSite: 'none'
-      })
-      .send({success: true})
+        .cookie('token', token, {
+          httpOnly: true,
+          secure: false,
+
+        })
+        .send({ success: true })
     })
 
 
@@ -80,7 +122,7 @@ async function run() {
 
 
     //get all rooms
-    app.get('/rooms', async (req, res) => {
+    app.get('/rooms', logger, async (req, res) => {
       const result = await roomsCollection.find().toArray()
 
       res.send(result);
@@ -89,7 +131,7 @@ async function run() {
 
     //update reviews
 
-    app.patch('/room-details/:id', async (req, res) =>{
+    app.patch('/room-details/:id', async (req, res) => {
       const id = req.params.id;
       console.log(id);
 
@@ -98,20 +140,20 @@ async function run() {
       try {
         // Update the room document in the database
         const updatedRoom = await roomsCollection.reviews.updateOne(
-            { _id: ObjectId(id) }, // Filter: Find the room by its ID
-            { $push: { reviews: { username, rating, comment, timestamp } } }, // Update: Push the new review to the reviews array
-            { returnOriginal: false } // Options: Return the updated document after the update
+          { _id: ObjectId(id) }, // Filter: Find the room by its ID
+          { $push: { reviews: { username, rating, comment, timestamp } } }, // Update: Push the new review to the reviews array
+          { returnOriginal: false } // Options: Return the updated document after the update
         );
 
         if (!updatedRoom.value) {
-            return res.status(404).json({ error: 'Room not found' });
+          return res.status(404).json({ error: 'Room not found' });
         }
 
         res.json({ message: 'Review added successfully', room: updatedRoom.value });
-    } catch (error) {
+      } catch (error) {
         console.error('Error adding review:', error);
         res.status(500).json({ error: 'Failed to add review' });
-    }
+      }
 
     })
 
@@ -127,8 +169,9 @@ async function run() {
 
 
     // bookings
-    app.post('/bookings', async (req, res) => {
+    app.post('/bookings', logger, async (req, res) => {
       const booking = req.body;
+      // console.log('cookie from bokking', req.cookies)
 
       const result = await bookingsCollection.insertOne(booking);
       res.send(result);
@@ -162,8 +205,11 @@ async function run() {
 
 
     //extract booking by email
-    app.get('/bookings/:email', async (req, res) => {
+
+    app.get('/bookings/:email', verifyToken, logger, async (req, res) => {
       const email = req.params.email;
+      // console.log('cookie from booking email', req.cookies.token)
+      console.log('user in the valid token', req.user)
       const query = { customerEmail: email }
       const result = await bookingsCollection.find(query).toArray();
       res.send(result);
