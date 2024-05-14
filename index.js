@@ -159,7 +159,7 @@ async function run() {
 
     //rooms by id
 
-    app.get('/room-details/:id', async (req, res) => {
+    app.get('/room-details/:id',verifyToken, logger,  async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const result = await roomsCollection.findOne(query);
@@ -210,6 +210,13 @@ async function run() {
       const email = req.params.email;
       // console.log('cookie from booking email', req.cookies.token)
       console.log('user in the valid token', req.user)
+
+      if (email !== req.user.email) {
+        return res.status(403).send({ message: 'forbidden access' })
+      }
+
+
+
       const query = { customerEmail: email }
       const result = await bookingsCollection.find(query).toArray();
       res.send(result);
