@@ -173,7 +173,7 @@ async function run() {
     
     app.get('/reviews', async (req, res) => {
       try {
-        const allReviews = await reviewsCollection.find({}).toArray();
+        const allReviews = await reviewsCollection.find({}).sort({ timestamp: -1 }).toArray();
         res.send(allReviews);
       } catch (error) {
         console.error('Error fetching all reviews:', error);
@@ -190,7 +190,7 @@ async function run() {
     
       try {
 
-        const result = await reviewsCollection.find(query).sort({ timestamp: -1 }).toArray(); 
+        const result = await reviewsCollection.find(query).toArray(); 
         
         if (result.length > 0) {
           res.send(result);  
