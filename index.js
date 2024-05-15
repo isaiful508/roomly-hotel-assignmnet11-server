@@ -190,8 +190,8 @@ async function run() {
     
       try {
 
-        const result = await reviewsCollection.find(query).toArray(); 
-
+        const result = await reviewsCollection.find(query).sort({ timestamp: -1 }).toArray(); 
+        
         if (result.length > 0) {
           res.send(result);  
         } else {
