@@ -96,6 +96,8 @@ async function run() {
 
     const bookingsCollection = client.db('roomlyDB').collection('bookings')
 
+    const reviewsCollection = client.db('roomlyDB').collection('reviews')
+
 
     //jwt generator
     app.post('/jwt', logger, async (req, res) => {
@@ -109,19 +111,30 @@ async function run() {
       res
         .cookie('token', token, {
           httpOnly: true,
-          secure: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+
+
+          // httpOnly: true,
+          // secure: false,
 
         })
         .send({ success: true })
     })
 
 
-    //auth related api
-
-    app.post('/jwt', async (req, res) => {
+    app.post('/logout', async (req, res) => {
       const user = req.body;
-      console.log('user for the token', user)
+      console.log('logging out', user)
+      res.clearCookie('token', { maxAge: 0 }).send({ success: true })
     })
+
+
+
+    // app.post('/jwt', async (req, res) => {
+    //   const user = req.body;
+    //   console.log('user for the token', user)
+    // })
 
 
 
@@ -147,37 +160,54 @@ async function run() {
     })
 
 
-    //update reviews
+    //post reviews
 
-    app.patch('/room-details/:id', async (req, res) => {
-      const id = req.params.id;
-      console.log(id);
+    app.post('/reviews', async(req, res) =>{
+      const reviews = req.body;
+      console.log(reviews);
+      const result = await reviewsCollection.insertOne(reviews);
+      res.send(result)
+    })
 
-      const { username, rating, comment, timestamp } = req.body.review
-      // console.log(req.body);
+    //get all reviews
+    
+    app.get('/reviews', async (req, res) => {
       try {
-        // Update the room document in the database
-        const updatedRoom = await roomsCollection.reviews.updateOne(
-          { _id: ObjectId(id) }, // Filter: Find the room by its ID
-          { $push: { reviews: { username, rating, comment, timestamp } } }, // Update: Push the new review to the reviews array
-          { returnOriginal: false } // Options: Return the updated document after the update
-        );
-
-        if (!updatedRoom.value) {
-          return res.status(404).json({ error: 'Room not found' });
-        }
-
-        res.json({ message: 'Review added successfully', room: updatedRoom.value });
+        const allReviews = await reviewsCollection.find({}).toArray();
+        res.send(allReviews);
       } catch (error) {
-        console.error('Error adding review:', error);
-        res.status(500).json({ error: 'Failed to add review' });
+        console.error('Error fetching all reviews:', error);
+        res.status(500).send({ message: 'Server error' });
+      }
+    });
+  
+    //get reviews by roomid 
+
+    app.get('/reviews/:roomId', async (req, res) => {
+
+      const roomId = req.params.roomId;  
+      const query = { roomId: roomId };  
+    
+      try {
+
+        const result = await reviewsCollection.find(query).toArray(); 
+
+        if (result.length > 0) {
+          res.send(result);  
+        } else {
+          res.status(404).send({ message: 'No reviews found for this room' });  
+        }
+      } catch (error) {
+        res.status(500).send({ message: 'Server error', error }); 
       }
 
-    })
+    });
+    
+
 
     //rooms by id
 
-    app.get('/room-details/:id', verifyToken, logger, async (req, res) => {
+    app.get('/room-details/:id',  logger, async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const result = await roomsCollection.findOne(query);
@@ -224,14 +254,14 @@ async function run() {
 
     //extract booking by email
 
-    app.get('/bookings/:email', verifyToken, logger, async (req, res) => {
+    app.get('/bookings/:email',  logger, async (req, res) => {
       const email = req.params.email;
       // console.log('cookie from booking email', req.cookies.token)
       console.log('user in the valid token', req.user)
 
-      if (email !== req.user.email) {
-        return res.status(403).send({ message: 'forbidden access' })
-      }
+      // if (email !== req.user.email) {
+      //   return res.status(403).send({ message: 'forbidden access' })
+      // }
 
 
 
@@ -254,14 +284,14 @@ async function run() {
     app.patch('/bookings/:id', async (req, res) => {
 
       const id = req.params.id;
-      console.log(id);
+      // console.log(id);
       const query = { _id: (id) };
 
 
       // const { startDate } = req.body;
       const newDate = req.body.date;
       // console.log(startDate)
-      console.log('fromserver', newDate);
+      // console.log('fromserver', newDate);
 
 
       const updateDoc = {
