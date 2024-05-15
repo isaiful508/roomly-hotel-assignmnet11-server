@@ -116,14 +116,32 @@ async function run() {
     })
 
 
+    //auth related api
 
+    app.post('/jwt', async (req, res) => {
+      const user = req.body;
+      console.log('user for the token', user)
+    })
 
 
 
 
     //get all rooms
     app.get('/rooms', logger, async (req, res) => {
-      const result = await roomsCollection.find().toArray()
+
+      const { minPrice, maxPrice } = req.query;
+
+      let query = {};
+      if (minPrice && maxPrice) {
+        query.pricePerNight = {
+          $gte: parseFloat(minPrice),
+          $lte: parseFloat(maxPrice)
+        };
+      }
+
+
+
+      const result = await roomsCollection.find(query).toArray()
 
       res.send(result);
     })
@@ -159,7 +177,7 @@ async function run() {
 
     //rooms by id
 
-    app.get('/room-details/:id',verifyToken, logger,  async (req, res) => {
+    app.get('/room-details/:id', verifyToken, logger, async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const result = await roomsCollection.findOne(query);
