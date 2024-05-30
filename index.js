@@ -131,38 +131,34 @@ async function run() {
 
 
 
-    // app.post('/jwt', async (req, res) => {
-    //   const user = req.body;
-    //   console.log('user for the token', user)
-    // })
+
+app.get('/rooms', async (req, res) => {
+  const { minPrice, maxPrice, search } = req.query;
+
+  let filter = {};
+
+  if (minPrice && maxPrice) {
+    filter.pricePerNight = { $gte: parseInt(minPrice), $lte: parseInt(maxPrice) };
+  }
+
+  if (search) {
+    filter.name = { $regex: search, $options: 'i' };
+  }
+
+  try {
+    const rooms = await roomsCollection.find(filter).toArray();
+    res.json(rooms);
+  } catch (error) {
+    res.status(500).send({ error: 'An error occurred while fetching rooms' });
+  }
+});
 
 
-
-
-    //get all rooms
-    app.get('/rooms', logger, async (req, res) => {
-
-      const { minPrice, maxPrice } = req.query;
-
-      let query = {};
-      if (minPrice && maxPrice) {
-        query.pricePerNight = {
-          $gte: parseFloat(minPrice),
-          $lte: parseFloat(maxPrice)
-        };
-      }
-
-
-
-      const result = await roomsCollection.find(query).toArray()
-
-      res.send(result);
-    })
 
 
     //post reviews
 
-    app.post('/reviews', async(req, res) =>{
+    app.post('/reviews', async (req, res) => {
       const reviews = req.body;
       console.log(reviews);
       const result = await reviewsCollection.insertOne(reviews);
@@ -170,7 +166,7 @@ async function run() {
     })
 
     //get all reviews
-    
+
     app.get('/reviews', async (req, res) => {
       try {
         const allReviews = await reviewsCollection.find({}).sort({ timestamp: -1 }).toArray();
@@ -180,34 +176,34 @@ async function run() {
         res.status(500).send({ message: 'Server error' });
       }
     });
-  
+
     //get reviews by roomid 
 
     app.get('/reviews/:roomId', async (req, res) => {
 
-      const roomId = req.params.roomId;  
-      const query = { roomId: roomId };  
-    
+      const roomId = req.params.roomId;
+      const query = { roomId: roomId };
+
       try {
 
-        const result = await reviewsCollection.find(query).toArray(); 
-        
+        const result = await reviewsCollection.find(query).toArray();
+
         if (result.length > 0) {
-          res.send(result);  
+          res.send(result);
         } else {
-          res.status(404).send({ message: 'No reviews found for this room' });  
+          res.status(404).send({ message: 'No reviews found for this room' });
         }
       } catch (error) {
-        res.status(500).send({ message: 'Server error', error }); 
+        res.status(500).send({ message: 'Server error', error });
       }
 
     });
-    
+
 
 
     //rooms by id
 
-    app.get('/room-details/:id',  logger, async (req, res) => {
+    app.get('/room-details/:id', verifyToken, logger, async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const result = await roomsCollection.findOne(query);
@@ -254,7 +250,7 @@ async function run() {
 
     //extract booking by email
 
-    app.get('/bookings/:email',  logger, async (req, res) => {
+    app.get('/bookings/:email', verifyToken, logger, async (req, res) => {
       const email = req.params.email;
       // console.log('cookie from booking email', req.cookies.token)
       console.log('user in the valid token', req.user)
